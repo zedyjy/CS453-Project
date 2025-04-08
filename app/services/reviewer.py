@@ -20,6 +20,8 @@ def review_with_openai(diff_text: str) -> str:
                     "role": "system",
                     "content": """You are a senior software engineer reviewing a pull request.
                 - Analyze line-by-line
+                - If it looks good, no need to make comments 
+                - Mention specific line numbers that you think have issues
                 - Mention specific line numbers
                 - Highlight:
                 * Code quality issues
@@ -61,7 +63,8 @@ def review_with_deepseek(diff_text: str) -> str:
                 "role": "system",
                 "content": """You are a senior software engineer reviewing a pull request.
                 - Analyze line-by-line
-                - Mention specific line numbers
+                - If it looks good, no need to make comments 
+                - Mention specific line numbers that you think have issues
                 - Highlight:
                 * Code quality issues
                 * Potential bugs
@@ -78,7 +81,7 @@ def review_with_deepseek(diff_text: str) -> str:
         payload = {
             "model": "deepseek-coder",  # Required field
             "messages": messages,  # Must use 'messages' not 'code'
-            "temperature": 0.3,
+            "temperature": 0.2,
             "max_tokens": 500,
             "stream": False  # Required by some APIs
         }
@@ -87,7 +90,6 @@ def review_with_deepseek(diff_text: str) -> str:
             url,
             headers=headers,
             json=payload,
-            timeout=10
         )
 
         if response.status_code == 200:
