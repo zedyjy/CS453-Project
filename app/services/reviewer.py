@@ -18,11 +18,19 @@ def review_with_openai(diff_text: str) -> str:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a senior software engineer reviewing a pull request. Be concise and actionable."
+                    "content": "You are a senior software engineer reviewing a pull request. "
+                           "Provide concise, actionable feedback. Focus on:"
+                           "\n- Code quality issues"
+                           "\n- Potential bugs"
+                           "\n- Security concerns"
+                           "\n- Performance optimizations"
+                           "\nKeep responses under 500 tokens."
                 },
                 {
                     "role": "user",
-                    "content": f"Please review the following code diff and suggest improvements:\n\n{diff_text}"
+                    "content": f"Please review this code diff:\n\n{diff_text}\n\n"
+                           "Provide specific suggestions in bullet points. "
+                           "If everything looks good, simply say 'LGTM (Looks Good To Me)'."
                 }
             ],
             temperature=0.3,
@@ -44,6 +52,27 @@ def review_with_deepseek(diff_text: str) -> str:
             "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
             "Content-Type": "application/json"
         }
+
+        # Properly structured prompt with system message
+        messages = [
+            {
+                "role": "system",
+                "content": "You are a senior software engineer reviewing a pull request. "
+                           "Provide concise, actionable feedback. Focus on:"
+                           "\n- Code quality issues"
+                           "\n- Potential bugs"
+                           "\n- Security concerns"
+                           "\n- Performance optimizations"
+                           "\nKeep responses under 500 tokens."
+            },
+            {
+                "role": "user",
+                "content": f"Please review this code diff:\n\n{diff_text}\n\n"
+                           "Provide specific suggestions in bullet points. "
+                           "If everything looks good, simply say 'LGTM (Looks Good To Me)'."
+            }
+        ]
+
         payload = {
             "code": diff_text,
             "task": "code_review"
