@@ -20,3 +20,20 @@ def fetch_pr_diff(owner: str, repo: str, pr_number: int) -> str:
         print(f"GitHub API error [{response.status_code}]: {response.text}")
         return ""
 
+
+def post_review_comment(comments_url: str, review_text: str, commenter: str) -> bool:
+    """
+    Posts a review comment to the GitHub PR
+    """
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "LLM-CodeReview-Bot"
+    }
+
+    payload = {
+        "body": f"{commenter} Code Review:\n\n{review_text}"
+    }
+
+    response = requests.post(comments_url, json=payload, headers=headers)
+    return response.status_code == 201
