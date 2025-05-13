@@ -9,7 +9,7 @@ CONFIG_CACHE = {}
 VALID_MODELS = {"gpt-4o", "deepseek"}
 VALID_FOCUS = {
     "security", "readability", "performance", "bug-risk",
-    "maintainability", "test-coverage", "documentation", "best-practices"
+    "maintainability", "test-coverage", "documentation", "best-practices", "style"
 }
 VALID_STRICTNESS = {"low", "medium", "high"}
 
