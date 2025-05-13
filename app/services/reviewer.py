@@ -7,22 +7,67 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 openai.api_key = OPENAI_API_KEY
 
+# Descriptions for strictness levels
+STRICTNESS_DESCRIPTIONS = {
+    "low": "only major issues (blockers or high-severity bugs)",
+    "medium": "balanced review: key improvements and reasonable style guidance",
+    "high": "strictest review: includes nitpicks, formatting, and minor style tips"
+}
+
+
 def review_with_openai(diff_text: str, focus: list, strictness: str) -> str:
+    """
+    Sends the diff to OpenAI's GPT-4o model for review with detailed strictness descriptions.
+    """
     try:
         focus_text = ", ".join(focus)
-        system_prompt = f"""You are a senior software engineer reviewing a pull request.
+        desc = STRICTNESS_DESCRIPTIONS.get(strictness.lower(), "balanced review")
+        system_prompt = f"""You are an expert AI code reviewer.
 
-- Focus areas: {focus_text}
-- Strictness level: {strictness.upper()}
-- Analyze line-by-line
-- Mention specific line numbers
-- Highlight:
-    * Code quality issues
-    * Potential bugs
-    * Security concerns
-- Use markdown formatting
-- If everything looks good, say 'LGTM'
-- Keep your response under 500 tokens"""
+            You will receive a Git diff from a pull request. Your task is to return a JSON response analyzing the diff with:
+
+            1. A concise summary of what the PR changes and its impact (max 1 paragraph).
+            At the end of this summary, explicitly include:
+            - Focus areas applied in this review: {focus_text if focus else 'all categories'}
+            - Strictness level used: {strictness.upper()} — {desc}
+
+            2. A list of detailed line-by-line comments relevant to the selected focus areas.
+
+            Rules:
+            - If focus areas are specified, only include comments with categories that match one of the focus areas.
+            - If no focus is provided, use any category from ['bug', 'performance', 'readability', 'security', 'style', 'documentation'].
+            - Do not include lines that do not match the focus areas.
+
+            Each comment must include:
+            - file: the filename (or "unknown")
+            - line: the line number
+            - issue: short description of the problem
+            - suggestion: improved code or fix (if possible)
+            - category: selected from the allowed list
+            - severity: one of ['low', 'medium', 'high', 'critical']
+            - confidence: a float between 0 and 1
+
+            Output a single valid JSON object like:
+
+            {{
+            "summary": "<overall_summary including focus and strictness>",
+            "comments": [
+                {{
+                "file": "<filename>",
+                "line": <line_number>,
+                "issue": "<description>",
+                "suggestion": "<suggested_fix_or_code>",
+                "category": "<category from focus>",
+                "severity": "<severity>",
+                "confidence": <float>
+                }}
+            ]
+            }}
+
+            Use markdown in suggestions.
+            """
+
+
 
         response = openai.ChatCompletion.create(
             model="gpt-4o",
@@ -34,7 +79,7 @@ def review_with_openai(diff_text: str, focus: list, strictness: str) -> str:
                 }
             ],
             temperature=0.2,
-            max_tokens=500
+            max_tokens=1000
         )
 
         return response["choices"][0]["message"]["content"].strip()
@@ -45,21 +90,56 @@ def review_with_openai(diff_text: str, focus: list, strictness: str) -> str:
 
 
 def review_with_deepseek(diff_text: str, focus: list, strictness: str) -> str:
+    """
+    Sends the diff to DeepSeek's chat API for review with detailed strictness descriptions.
+    """
     try:
         focus_text = ", ".join(focus)
-        system_prompt = f"""You are a senior software engineer reviewing a pull request.
+        desc = STRICTNESS_DESCRIPTIONS.get(strictness.lower(), "balanced review")
+        system_prompt = f"""You are an expert AI code reviewer.
 
-- Focus areas: {focus_text}
-- Strictness level: {strictness.upper()}
-- Analyze line-by-line
-- Mention specific line numbers
-- Highlight:
-    * Code quality issues
-    * Potential bugs
-    * Security concerns
-- Use markdown formatting
-- If everything looks good, say 'LGTM'
-- Keep your response under 500 tokens"""
+            You will receive a Git diff from a pull request. Your task is to return a JSON response analyzing the diff with:
+
+            1. A concise summary of what the PR changes and its impact (max 1 paragraph).
+            At the end of this summary, explicitly include:
+            - Focus areas applied in this review: {focus_text if focus else 'all categories'}
+            - Strictness level used: {strictness.upper()} — {desc}
+
+            2. A list of detailed line-by-line comments relevant to the selected focus areas.
+
+            Rules:
+            - If focus areas are specified, only include comments with categories that match one of the focus areas.
+            - If no focus is provided, use any category from ['bug', 'performance', 'readability', 'security', 'style', 'documentation'].
+            - Do not include lines that do not match the focus areas.
+
+            Each comment must include:
+            - file: the filename (or "unknown")
+            - line: the line number
+            - issue: short description of the problem
+            - suggestion: improved code or fix (if possible)
+            - category: selected from the allowed list
+            - severity: one of ['low', 'medium', 'high', 'critical']
+            - confidence: a float between 0 and 1
+
+            Output a single valid JSON object like:
+
+            {{
+            "summary": "<overall_summary including focus and strictness>",
+            "comments": [
+                {{
+                "file": "<filename>",
+                "line": <line_number>,
+                "issue": "<description>",
+                "suggestion": "<suggested_fix_or_code>",
+                "category": "<category from focus>",
+                "severity": "<severity>",
+                "confidence": <float>
+                }}
+            ]
+            }}
+
+            Use markdown in suggestions.
+            """
 
         payload = {
             "model": "deepseek-coder",
@@ -68,7 +148,7 @@ def review_with_deepseek(diff_text: str, focus: list, strictness: str) -> str:
                 { "role": "user", "content": f"Review this diff:\n```diff\n{diff_text}\n```" }
             ],
             "temperature": 0.2,
-            "max_tokens": 500,
+            "max_tokens": 1000,
             "stream": False
         }
 
