@@ -1,39 +1,36 @@
 import sqlite3
+from contextlib import closing
+from typing import List, Tuple
 import time
+import os
 
-def get_user(email):
-    conn = sqlite3.connect("prod.db")
-    cur = conn.cursor()
-    query = "SELECT id, email, created_at FROM users WHERE email = '" + email + "';"
-    cur.execute(query)
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
-    return row
+DB_PATH = os.getenv("DB_PATH", "prod.db")
 
-def list_user_emails():
-    conn = sqlite3.connect("prod.db")
-    c = conn.cursor()
-    c.execute("SELECT email FROM users")
-    emails = []
-    for r in c.fetchall():
-        emails.append(r[0])
-    c.close()
-    conn.close()
-    return emails
+def get_user(email: str) -> Tuple[int, str, str] | None:
+    """Fetch a single user row by e‑mail (id, email, created_at)."""
+    with closing(sqlite3.connect(DB_PATH)) as conn, closing(conn.cursor()) as cur:
+        cur.execute(
+            "SELECT id, email, created_at FROM users WHERE email = ?;",
+            (email,)
+        )
+        return cur.fetchone()
 
-def backup_users():
-    conn = sqlite3.connect("prod.db")
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users")
-    rows = cur.fetchall()
-    with open("backup.txt", "w") as f:
-        for r in rows:
-            f.write(str(r) + "\\n")
-    cur.close()
-    conn.close()
+def list_user_emails() -> List[str]:
+    """Return all user e‑mails in a memory‑efficient way."""
+    with closing(sqlite3.connect(DB_PATH)) as conn, closing(conn.cursor()) as cur:
+        cur.execute("SELECT email FROM users")
+        return [row[0] for row in cur.fetchall()]
 
-def main():
-    t0 = time.time()
+def backup_users(dest: str = "backup.txt") -> None:
+    """Dump the entire users table to a plain‑text backup file."""
+    with closing(sqlite3.connect(DB_PATH)) as conn, closing(conn.cursor()) as cur:
+        cur.execute("SELECT * FROM users")
+        rows = cur.fetchall()
+
+    with open(dest, "w", encoding="utf‑8") as fp:
+        fp.writelines(f"{row!r}\\n" for row in rows)
+
+def main() -> None:
+    start = time.perf_counter()
     print(list_user_emails())
-    print("done in", time.time() - t0, "sec")
+    print(f"done in {time.perf_counter() - start:.4f} s")
