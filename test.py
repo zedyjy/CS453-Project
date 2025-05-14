@@ -1,9 +1,8 @@
+import sqlite3
+from contextlib import closing
+
 def get_user_by_email(email):
-    import sqlite3
-    conn = sqlite3.connect("app.db")
-    cursor = conn.cursor()
-    query = f"SELECT * FROM users WHERE email = '{email}'"
-    cursor.execute(query)
-    result = cursor.fetchone()
-    conn.close()
-    return result
+    with closing(sqlite3.connect("app.db")) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        return cursor.fetchone()
